@@ -4,6 +4,9 @@ Memoirs
 Memoization Functions for Rust
 
 ```rust
+extern crate memoirs;
+use memoirs::MemFunc;
+
 mem!(
   fn double(num : int) -> int { 
     println!("Evaluating...");
