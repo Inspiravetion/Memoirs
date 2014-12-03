@@ -1,0 +1,9 @@
+[package]
+
+name    = "Memoize" 
+version = "0.0.1"
+authors = [ "Charlie Lipford <charlie.lipford.code@gmail.com>" ]
+
+[dependencies.lazy_static]
+
+git = "https://github.com/Kimundi/lazy-static.rs"
