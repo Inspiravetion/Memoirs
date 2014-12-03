@@ -4,6 +4,9 @@ Memoirs
 Memoization Functions for Rust
 
 ```rust
+#![feature(unboxed_closures)]
+#![feature(phase)]
+#[phase(plugin)]
 extern crate memoirs;
 use memoirs::MemFunc;
 
