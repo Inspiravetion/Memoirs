@@ -29,7 +29,7 @@ memoize!(
 //protected by std::mutex::Mutex
 memoize_sync!(
     fn triple(i : int) -> int {
-	unsafe { count += 1 };
+        unsafe { count += 1 };
         3 * i
     }
 )
