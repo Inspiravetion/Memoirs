@@ -1,0 +1,14 @@
+[package]
+
+name        = "memoirs" 
+version     = "0.0.1"
+authors     = [ "Charlie Lipford <charlie.lipford.code@gmail.com>" ]
+description = "Memoization functions for Rust"
+repository  = "https://github.com/Inspiravetion/Memoirs"
+readme      = "./README.md"
+keywords    = ["Memoization", "SmartFunction"]
+license     = "MIT"
+
+[lib]
+name       = "memoirs"
+crate-type = ["dylib"]
