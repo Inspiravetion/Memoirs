@@ -1,9 +1,3 @@
-Memoirs
-=======
-
-Memoization Functions for Rust
-
-```rust
 #![feature(phase)]
 #![feature(unboxed_closures)]
 #![allow(non_camel_case_types)]
@@ -18,19 +12,10 @@ extern crate lazy_static;
 
 static mut count : int = 0;
 
-//not thread safe
 memoize!(
     fn double(i : int) -> int { 
         unsafe { count += 1 };
         2 * i
-    }
-)
-
-//protected by std::mutex::Mutex
-memoize_sync!(
-    fn triple(i : int) -> int {
-	unsafe { count += 1 };
-	3 * i
     }
 )
 
@@ -53,4 +38,3 @@ fn basic_test() {
 
     assert!(unsafe { count } == 4);
 }
-```

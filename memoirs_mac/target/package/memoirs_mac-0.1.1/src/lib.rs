@@ -10,7 +10,7 @@ extern crate rustc;
 
 use syntax::parse::token::{Paren, Colon, CloseDelim, RArrow, OpenDelim, Comma};
 use syntax::ast::{TokenTree, Ident, Ty, Block, Item, Arg};
-use syntax::parse::common::SeqSep;
+use syntax::parse::common::seq_sep_trailing_disallowed;
 use syntax::ext::base::{ExtCtxt, MacResult, MacItems};
 use syntax::parse::token::keywords::{Fn};
 use syntax::ext::build::AstBuilder;  // trait for expr_uint
@@ -58,7 +58,7 @@ fn parse_input(ctxt : &mut ExtCtxt, tt : &[TokenTree]) -> (Ident, Vec<(Ident, P<
 
     let params = parser.parse_seq_to_end(
         &CloseDelim(Paren),
-        SeqSep { sep : Some(Comma), trailing_sep_allowed : false },
+        seq_sep_trailing_disallowed(Comma),
         |parser : &mut Parser| -> (Ident, P<Ty>) {
             let arg_name = parser.parse_ident();
             parser.expect(&Colon);
@@ -77,14 +77,14 @@ fn parse_input(ctxt : &mut ExtCtxt, tt : &[TokenTree]) -> (Ident, Vec<(Ident, P<
 }
 
 fn expand_sync(ctxt : &mut ExtCtxt, span : Span, name : Ident, params : Vec<(Ident,P<Ty>)>, ret_typ : P<Ty>, code : P<Block>) -> Box<MacResult + 'static> {
-    let shadow_fn           = expand_shadow_fn(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone(), code.clone());
-    let shadow_type         = expand_shadow_type(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
-    let shadow_impl         = expand_shadow_type_impl(ctxt, name.clone());
-    let mem_bk_impl         = expand_memoize_backend_impl(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
-    let mem_fn_impl         = expand_memoize_fn_impl(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
-    let fn_impl             = expand_fn_impl(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
-    let lazy_static_sync    = expand_lazy_static_sync(ctxt, name.clone());
-    let static_fn_impl_sync = expand_static_fn_impl_sync(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
+    let shadow_fn   = expand_shadow_fn(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone(), code.clone());
+    let shadow_type = expand_shadow_type(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
+    let shadow_impl = expand_shadow_type_impl(ctxt, name.clone());
+    let mem_bk_impl = expand_memoize_backend_impl(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
+    let mem_fn_impl = expand_memoize_fn_impl(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
+    let fn_impl     = expand_fn_impl(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
+    // let lazy_static_sync = expand_lazy_static_sync(ctxt, name.clone());
+    // let static_fn_impl_sync = expand_static_fn_impl_sync(ctxt, span.clone(), name.clone(), params.clone(), ret_typ.clone());
 
     MacItems::new(vec![
         shadow_fn,
@@ -92,9 +92,9 @@ fn expand_sync(ctxt : &mut ExtCtxt, span : Span, name : Ident, params : Vec<(Ide
         shadow_impl,
         mem_bk_impl,
         mem_fn_impl, 
-        fn_impl,
-        lazy_static_sync,
-        static_fn_impl_sync
+        fn_impl
+        // lazy_static_sync,
+        // static_fn_impl_sync
     ].into_iter())
 }
 fn expand(ctxt : &mut ExtCtxt, span : Span, name : Ident, params : Vec<(Ident,P<Ty>)>, ret_typ : P<Ty>, code : P<Block>) -> Box<MacResult + 'static> {
@@ -212,7 +212,7 @@ fn expand_memoize_fn_impl(ctxt : &mut ExtCtxt, span : Span, name : Ident, params
     (quote_item!(ctxt,
         impl memoirs::MemoizeFn<$typ_tup, $ret_typ> for $name {
             fn call_underlying_fn(&self, args : $typ_tup) -> $ret_typ {
-                $shadow_fn.call_once(args)
+                $shadow_fn.call(args)
             }
         }
     ).unwrap())
@@ -267,6 +267,9 @@ fn expand_lazy_static_sync(ctxt : &mut ExtCtxt, name : Ident) -> P<Item> {
     let shadow_name = shadow_typ_name(name.as_str());
 
     (quote_item!(ctxt,
+        #[phase(plugin)]
+        extern crate lazy_static;
+
         lazy_static! {
             static ref $name : std::sync::Mutex<$shadow_name> = std::sync::Mutex::new($shadow_name::new());
         }
@@ -295,7 +298,8 @@ fn expand_static_fn_impl(ctxt : &mut ExtCtxt, span : Span, name : Ident, params 
 /*
 impl Fn<(int,), int> for double {
     extern "rust-call" fn call(&self, args: (int,)) -> int {
-        self.deref().lock().call(args)
+        let self : &mut double = mem::transmute(self);
+        (*self).lock().call_mut(args)
     }
 }
 */
@@ -305,7 +309,8 @@ fn expand_static_fn_impl_sync(ctxt : &mut ExtCtxt, span : Span, name : Ident, pa
     (quote_item!(ctxt,
         impl Fn<$typ_tup, $ret_typ> for $name {
             extern "rust-call" fn call(&self, args: $typ_tup) -> $ret_typ {
-                self.deref().lock().call(args)    
+                let _self : &mut $name = unsafe { std::mem::transmute(self) };
+                (*_self).lock().call_mut(args)
             } 
         }
      ).unwrap())
