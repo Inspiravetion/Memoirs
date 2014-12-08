@@ -16,12 +16,12 @@ extern crate memoirs;
 #[phase(plugin)]
 extern crate lazy_static;
 
-static mut count : int = 0;
+static mut evaluations : int = 0;
 
 //not thread safe
 memoize!(
     fn double(i : int) -> int { 
-        unsafe { count += 1 };
+        unsafe { evaluations += 1 };
         2 * i
     }
 )
@@ -29,7 +29,7 @@ memoize!(
 //protected by std::mutex::Mutex
 memoize_sync!(
     fn triple(i : int) -> int {
-        unsafe { count += 1 };
+        unsafe { evaluations += 1 };
         3 * i
     }
 )
@@ -40,17 +40,17 @@ fn basic_test() {
     assert!(4 == double(2));
     assert!(6 == double(3));
 
-    assert!(unsafe { count } == 3);
+    assert!(unsafe { evaluations } == 3);
 
     assert!(2 == double(1));
     assert!(4 == double(2));
     assert!(6 == double(3));
 
-    assert!(unsafe { count } == 3);
+    assert!(unsafe { evaluations } == 3);
 
     assert!(8 == double(4));
     assert!(8 == double(4));
 
-    assert!(unsafe { count } == 4);
+    assert!(unsafe { evaluations } == 4);
 }
 ```
